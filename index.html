@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>游戏王制卡器-游戏王Horus-</title>
+	<meta charset="utf-8"/>
+	<script type="text/javascript">
+		if(/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+		    window.location.href = "https://ymssx.gitee.io/card/wrap.html";
+		}
+	</script>
+	<link rel="stylesheet" type="text/css" href="style.css">
+	<link rel="stylesheet" type="text/css" href="jquery.Jcrop.min.css">
+</head>
+<body>
+<div id="box">
+	<div class="topbar">
+		<div onclick="window.open('https://ymssx.gitee.io/card_old/')">用回旧版</div>
+		<div onclick="window.open('http://p.qiao.baidu.com/cps/chat?siteId=12890956&userId=26931838&cp=http%3A%2F%2Fymssx.gitee.io%2Fcar%2Fpc.html&cr=&cw=')">反馈</div>
+	</div>
+	<div class="menu">
+		<div class="menu2 num4">
+			<select v-model="lang" class="w_1" title="请选择语言">
+				<option>中文</option>
+				<option>日文</option>
+			</select>
+			<select v-model="rarity" class="w_1" title="罕贵效果仅用于展示，不代表实际效果">				
+				<option>N</option>
+				<option>R</option>
+				<option>SR</option>
+				<option>UR</option>
+			</select>
+			<label for="key" :class="key?'bg_blue':'bg_dark'">卡片密码</label>
+			<input id="card_bag" type="checkbox" v-model="card_bag" value="true">
+			<label for="auto" :class="auto?'bg_green':'bg_dark'" title="关闭/开启 智能模式">智能模式</label>
+			<input id="auto" type="checkbox" v-model="auto" value="true">
+		</div>
+		<input type="text" v-model="password" v-show="key" placeholder="输入卡片密码可以自动适配卡图哦" v-on:input="search()" id="password" v-on:change='search()'>
+		<div class="holder"></div>
+		<div onclick="cl()" class="up" title="您上传的卡图将会方便其它人哦！请确保卡图与卡密的对应关系正确，以及卡图质量清晰、无水印。感谢您对本站的付出！">上传卡图</div>
+		<div class="cut_box" v-show="cut_t">
+			<!-- <img src="img/pic.jpg" id="pic" class="cut" onerror="this.src=''" crossorigin='anonymous'> -->
+			<img src="img/pic.jpg" id="pic" class="cut" onerror="this.src=''" >
+			<div class="cut_box2">
+				<div :class="ls?'bg_blue':'bg_dark'" v-on:click="cut_op(1)">拉伸</div>
+				<div :class="!ls?'bg_blue':'bg_dark'" v-on:click="cut_op(2)">裁剪</div>
+				<div class="bg_dark" onclick="card.cut_t=false">收起</div>
+			</div>
+		</div>
+		<input v-model="ifm_cn.name" v-show="this.lang=='中文'" title="请输入卡名" list="nameList" v-on:input="getFromName()">
+		<input v-model="ifm_jp.name" v-show="this.lang=='日文'" title="请输入卡名" list="nameList">
+		<datalist id="nameList">
+			<option v-for="(name,index) in names" :value="name.name" index="index">
+		</datalist>
+		<div :class="this.ifm.type=='monster'?'menu2 num4':'menu2 num2'">
+			<select v-model="ifm.type" v-on:change="type_change()" title="请选择卡片类型">
+				<option v-for="type in types" v-bind:value="type.value">{{type.text}}</option>
+			</select>
+			<select v-model="ifm.type2" v-show="this.ifm.type=='monster'" title="请选择卡片类型">
+				<option v-for="type2 in types2" v-bind:value="type2.value">{{type2.text}}</option>
+			</select>
+			<select v-model="ifm.type3" v-show="this.ifm.type=='monster'" title="请选择卡片类型">
+				<option value="">无</option>
+				<option value="lb" v-show="ifm.type2!='lj'">灵摆</option>
+				<option v-for="type21 in types21" v-bind:value="type21.value">{{type21.text}}</option>
+			</select>
+			<select v-model="ifm.type4" v-show="this.ifm.type=='monster'" title="请选择卡片类型">
+				<option value="">无</option>
+				<option v-for="type21 in types21" v-bind:value="type21.value">{{type21.text}}</option>
+			</select>
+			<select v-model="ifm.type2" v-show="this.ifm.type=='magic'" title="请选择卡片类型">
+				<option v-for="type3 in types3" v-bind:value="type3.value">{{type3.text}}</option>
+			</select>
+			<select v-model="ifm.type2" v-show="this.ifm.type=='tragic'" title="请选择卡片类型">
+				<option v-for="type4 in types4" v-bind:value="type4.value">{{type4.text}}</option>
+			</select>
+		</div>
+		<div class="lb_box" v-show="this.ifm.type3=='lb'">
+			<input class="lb f_blue" v-model="ifm.lb" placeholder="<" value="">
+			<textarea class="lb_txt" v-model="ifm_cn.lb_value" placeholder="请输入灵摆效果" v-show="this,lang=='中文'"></textarea>
+			<textarea class="lb_txt" v-model="ifm_jp.lb_value" placeholder="请输入灵摆效果" v-show="this,lang=='日文'"></textarea>
+			<input class="lb f_red" v-model="ifm.lb" placeholder=">" value="">
+		</div>
+		<div class="menu2 num3" v-show="this.ifm.type=='monster'">
+			<select v-model="ifm.race" v-show="!diy_race" title="请选择怪兽种族">
+				<option value="999">-自定义-</option>
+				<option v-for="(race,index) in race_cn" v-bind:value="index">{{race}}</option>
+			</select>
+			<input class="bg_dark" v-model="new_race" placeholder="请输入种族" v-show="diy_race" v-on:blur="add_race">
+			<input type="number" v-model="ifm.stars" max="12" min="1" v-show="this.ifm.type2!='lj'" title="请选择等级/阶级">
+			<select v-model="ifm.property" title="请选择属性">
+				<option v-for="prop in props" v-bind:value="prop.value">{{prop.text}}</option>
+			</select>
+			<input type="number" v-model="ifm.attack" step="100" min="0" v-show="this.ifm.type2=='lj'" title="请输入攻击力">
+		</div>
+		<div class="link" v-show="this.ifm.type2=='lj'">
+			<div class="menu2 link3">
+				<div v-on:click="link(0)" :class="!ifm.links[0]?'bg_dark':'bg_orange'">↖</div>
+				<div v-on:click="link(1)" :class="!ifm.links[1]?'bg_dark':'bg_orange'">↑</div>
+				<div v-on:click="link(2)" :class="!ifm.links[2]?'bg_dark':'bg_orange'">↗</div>
+			</div>
+			<div class="menu2 link2">
+				<div v-on:click="link(3)" :class="!ifm.links[3]?'bg_dark':'bg_orange'">←</div>
+				<div v-on:click="link(4)" :class="!ifm.links[4]?'bg_dark':'bg_orange'">→</div>
+			</div>
+			<div class="menu2 link3">
+				<div v-on:click="link(5)" :class="!ifm.links[5]?'bg_dark':'bg_orange'">↙</div>
+				<div v-on:click="link(6)" :class="!ifm.links[6]?'bg_dark':'bg_orange'">↓</div>
+				<div v-on:click="link(7)" :class="!ifm.links[7]?'bg_dark':'bg_orange'">↘</div>
+			</div>
+		</div>
+		<div class="menu2 num2" v-show="this.ifm.type=='monster' && this.ifm.type2!='lj'">
+			<input type="text" v-model="ifm.attack" step="100" min="0" title="请输入攻击力">
+			<input type="text" v-model="ifm.defend" step="100" min="0" title="请输入防御力">
+		</div>
+		<div class="menu2 num2">
+			<input id="holo_box" type="checkbox" v-model="holo" value="true">
+			<label for="holo_box" :class="holo?'bg_blue':'bg_dark'">防伪标志</label>
+			<input id="key" type="checkbox" v-model="key" value="true">
+			<label for="card_bag" :class="card_bag?'bg_blue':'bg_dark'">卡包</label>
+		</div>
+		<div class="menu2 num1" v-show="card_bag">
+			<input type="text" v-model="card_bag_num" v-show="card_bag" placeholder="请输入卡包号">
+		</div>
+		<textarea v-model="ifm_cn.value" v-show="this.lang=='中文'"></textarea>
+		<textarea v-model="ifm_jp.value" v-show="this.lang=='日文'"></textarea>
+		<div class="menu2 num2">
+			<a href="img/cover2.jpg" download="cover"><div class="bg_brown" style="cursor: pointer;border-radius: 5px">下载卡背</div></a>
+			<div class="bg_green" onclick="download()" style="cursor: pointer;" title="如果无法下载，请在卡图处右键>另存为">下载卡图</div>
+		</div>
+		<div class="menu2 num1 bg_green" v-on:click="cloud()" style="display: inline-block;text-align: center;cursor: pointer">云端绘图 文字更清晰（待优化）</div>
+	</div>
+	<form method="POST" action="https://horus.goho.co/card/upload.php">
+		<input id="upimg" type="file" accept="image/*" onchange="upload(this)" name="pic" enctype="multipart/form-data">
+		<input type="submit" id="picForm">
+	</form>
+	<form method="POST" action="https://horus.goho.co/card/card.php" enctype="multipart/form-data" style="display: none">
+		<input type="text" name="name" v-model="ifm_cn.name">
+		<input type="text" name="attribute" v-model="ifm.property">
+		<input type="number" name="level" v-model="level">
+		<input type="text" name="attack" v-model="ifm.attack">
+		<input type="text" name="defend" v-model="ifm.defend">
+		<input type="text" name="desc" v-model="ifm_cn.value">
+		<input type="text" name="lbValue" v-model="ifm_cn.lb_value">
+		<input type="number" name="lbNum" v-model="ifm.lb">
+		<input type="text" name="link" v-model="link_">
+		<input type="number" name="password" v-model="password">
+		<input type="text" name="raceText" v-model="race_txt">
+		<input type="text" name="type" v-model="ifm.type">
+		<input type="text" name="type2" v-model="ifm.type2">
+		<input type="text" name="type3" v-model="ifm.type3">
+		<input type="text" name="type4" v-model="ifm.type4">
+		<input id="cardPic" type="file" accept="image/*" name="img" enctype="multipart/form-data">
+		<input type="submit" id="newForm">
+	</form>
+	<div class="card">
+		<div class="source">
+			<img :src="card_type" id="bg">
+			<img src="img/holo.png" id="holo">
+			<img src="img/star.png" id="star">
+			<img src="img/level.png" id="level">
+			<img :src="property_src" id="prop">
+			<img :src="type2_src" id="type2">
+			<img src="" id="front">
+			<img src="img/arrow.png" id="arrow">
+			<img src="img/arrow1.png" id="arrow1">
+			<img src="img/arrow2.png" id="arrow2">
+			<img src="img/arrow12.png" id="arrow12">
+			<img src="img/flash.jpg" id="flash">
+			<img src="img/holo.jpg" id="holo2">
+			<img src="img/l1.jpg" id="l1">
+			<img src="img/l2.jpg" id="l2">
+			<p style="font-family: jp">杨明</p>
+			<p style="font-family: txt">杨明</p>
+			<p style="font-family: number">YangMing</p>
+		</div>
+		<canvas width="813" height="1185" id="card" onmousemove="rotate(event)" onmouseout="out()"></canvas>
+	</div>
+	<script src="vue.min.js"></script>
+	<script src="jquery.min.js"></script>
+	<script src="jquery.Jcrop.min.js"></script>
+	<script src="main.js"></script>
+	<div class="source">
+		<img src="img/property/light.png">
+		<img src="img/property/dark.png">
+		<img src="img/property/wind.png">
+		<img src="img/property/ground.png">
+		<img src="img/property/water.png">
+		<img src="img/property/fire.png">
+		<img src="img/property/god.png">
+		<img src="img/property/magic.png">
+		<img src="img/property/tragic.png">
+		<img src="img/magic.jpg">
+		<img src="img/tragic.jpg">
+		<img src="img/type/cd.png">
+		<img src="img/type/fj.png">
+		<img src="img/type/sg.png">
+		<img src="img/type/ys.png">
+		<img src="img/type/yx.png">
+		<img src="img/type/zb.png">
+		<img src="img/nmonster.jpg">
+		<img src="img/rmonster.jpg">
+		<img src="img/emonster.jpg">
+		<img src="img/ymonster.jpg">
+		<img src="img/tmonster.jpg">
+		<img src="img/cmonster.jpg">
+		<img src="img/link.jpg">
+		<div>
+			<img src="img/l_cmonster.jpg" v-if="ifm.type2=='cl'">
+			<img src="img/l_emonster.jpg" v-if="ifm.type2=='xg'">
+			<img src="img/l_nmonster.jpg" v-if="ifm.type2=='tc'">
+			<img src="img/l_rmonster.jpg" v-if="ifm.type2=='rh'">
+			<img src="img/l_tmonster.jpg" v-if="ifm.type2=='tt'">
+			<img src="img/l_ymonster.jpg" v-if="ifm.type2=='ys'">
+		</div>
+	</div>
+</div>
+</body>
+</html>
